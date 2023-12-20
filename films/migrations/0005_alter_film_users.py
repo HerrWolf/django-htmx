@@ -17,7 +17,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='film',
-            name='user',
+            name=''
+                 '',
             field=models.ManyToManyField(related_name='films', through='films.UserFilms', to=settings.AUTH_USER_MODEL),
         ),
     ]
