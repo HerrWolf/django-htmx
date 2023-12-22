@@ -1,4 +1,6 @@
-from django.http.response import HttpResponse, HttpResponsePermanentRedirect
+from django.conf import settings
+from django.core.paginator import Paginator
+from django.http.response import HttpResponse
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
@@ -36,11 +38,17 @@ class RegisterView(FormView):
 
 class FilmList(LoginRequiredMixin, ListView):
     template_name = 'films.html'
-    model = Film
+    model = UserFilms
+    paginate_by = settings.PAGINATE_BY
     context_object_name = 'films'
 
+    def get_template_names(self):
+        if self.request.htmx:
+            return 'partials/film-list-elements.html'
+        return 'films.html'
+
     def get_queryset(self):
-        return UserFilms.objects.filter(user=self.request.user)
+        return UserFilms.objects.prefetch_related('film').filter(user=self.request.user)
 
 
 @login_required
@@ -124,13 +132,29 @@ def clear(request):
 
 # @require_http_methods(['POST'])
 def sort(request):
-    films_pks_order = request.POST.getlist('film_order')
+    film_pks_order = request.POST.getlist('film_order')
     films = []
-    for idx, film_pk in enumerate(films_pks_order, start=1):
-        userfilm = UserFilms.objects.get(pk=film_pk)
-        userfilm.order = idx
-        userfilm.save()
+    updated_films = []
+
+    userfilms = UserFilms.objects.prefetch_related('film').filter(user=request.user)
+    for idx, film_pk in enumerate(film_pks_order, start=1):
+        # userfilm = UserFilms.objects.get(pk=film_pk)
+        userfilm = next(u for u in userfilms if u.pk == int(film_pk))
+
+        if userfilm.order != idx:
+            userfilm.order = idx
+            updated_films.append(userfilm)
+
         films.append(userfilm)
+
+    # bulk_update changed UserFilms's 'order' field
+    UserFilms.objects.bulk_update(updated_films, ['order'])
+
+    paginator = Paginator(films, settings.PAGINATE_BY)
+    page_number = len(film_pks_order) / settings.PAGINATE_BY
+    page_obj = paginator.get_page(page_number)
+    context = {'films': films, 'page_obj': page_obj}
+
     return render(request, 'partials/film-list.html', {'films': films})
 
 

@@ -14,7 +14,7 @@
 </div>
 <hr/>
 
-<div class="d-flex justify-content-between">
+<div class="d-flex justify-content-between mb-5">
 
     <section class="col-6">
 
@@ -37,30 +37,7 @@
                     hx-target="#film-list"
             >
                 <div class="htmx-indicator">Updating...</div>
-                {% for film in films %}
-                    <div style="cursor: grab">
-                        <input type='hidden' name='film_order' value="{{ film.pk }}"/>
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            <a
-                                    style="cursor: pointer;"
-                                    hx-get="{% url 'detail' film.pk %}"
-                                    hx-target="#film-list"
-                            >
-                                #{{ film.order }} {{ film.film.name }}
-                            </a>
-                            <span class="badge badge-danger badge-pill"
-                                  style="cursor: pointer;"
-                                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-                                  hx-delete="{% url 'delete-film' film.pk %}"
-                                  hx-target="#film-list"
-                                  hx-trigger='confirmed'
-                                  _="on click 
-                              call Swal.fire({title: 'Confirm', text:'Are you sure you wish to delete?'})
-                              if result.isConfirmed trigger confirmed"
-                            >X</span>
-                        </li>
-                    </div>
-                {% endfor %}
+                {% include 'partials/film-list-elements.html' %}
             </form>
         {% else %}
             <p>You do not have any films in your list</p>
